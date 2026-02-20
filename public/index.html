@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>go-e Charger Dashboard</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="power-display">
+        <span id="power">-</span>
+        <span class="unit">kW</span>
+    </div>
+
+    <div class="info-row">
+
+        <div class="info-box">
+            <div class="label">Status</div>
+            <div id="status" class="badge gray">-</div>
+        </div>
+
+        <div class="info-box">
+            <div class="label">Charged</div>
+            <div class="info-value">
+                <span id="energy">-</span> kWh
+            </div>
+        </div>
+
+        <div class="info-box">
+            <div class="label">Phases</div>
+            <div class="info-value" id="phase-count">-</div>
+        </div>
+
+        <div class="info-box">
+            <div class="label">Type 2 Temp</div>
+            <div class="info-value">
+                <span id="temp-type2">-</span> °C
+            </div>
+        </div>
+
+        <div class="info-box">
+            <div class="label">Supply Temp</div>
+            <div class="info-value">
+                <span id="temp-supply">-</span> °C
+            </div>
+        </div>
+
+    </div>
+
+    <div class="phase-grid">
+        <div class="phase" id="phase1">
+            <div class="phase-title">L1</div>
+            <div><span id="v1">-</span> V</div>
+            <div><span id="a1">-</span> A</div>
+        </div>
+        <div class="phase" id="phase2">
+            <div class="phase-title">L2</div>
+            <div><span id="v2">-</span> V</div>
+            <div><span id="a2">-</span> A</div>
+        </div>
+        <div class="phase" id="phase3">
+            <div class="phase-title">L3</div>
+            <div><span id="v3">-</span> V</div>
+            <div><span id="a3">-</span> A</div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+async function load() {
+    try {
+        const res = await fetch("/api/status");
+        const data = await res.json();
+
+        document.getElementById("power").innerText = data.power_kw;
+        document.getElementById("energy").innerText = data.energy_kwh;
+        document.getElementById("temp-type2").innerText = data.type2_temp ?? "-";
+        document.getElementById("temp-supply").innerText = data.supply_temp ?? "-";
+
+        const statusEl = document.getElementById("status");
+        statusEl.innerText = data.status_text;
+        statusEl.className = "badge " + data.status_color;
+
+        document.getElementById("phase-count").innerText =
+            data.active_phases + "-phase";
+
+        for (let i = 0; i < 3; i++) {
+            document.getElementById("v" + (i+1)).innerText = data.voltages[i];
+            document.getElementById("a" + (i+1)).innerText = data.currents[i];
+
+            const phaseBox = document.getElementById("phase" + (i+1));
+            if (parseFloat(data.currents[i]) > 0) {
+                phaseBox.classList.add("active");
+            } else {
+                phaseBox.classList.remove("active");
+            }
+        }
+
+    } catch (error) {
+        console.error(error);
+    }
+}
+
+setInterval(load, 3000);
+load();
+</script>
+
+</body>
+</html>
