@@ -105,13 +105,17 @@ body {
     margin: 0 0 10px;
 }
 
-.info-box {
-    flex: 1 1 140px;
+.info-box,
+.control-box {
     background: white;
     padding: 15px;
     border-radius: 14px;
-    text-align: center;
     box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.info-box {
+    flex: 1 1 140px;
+    text-align: center;
 }
 
 .charging-row .info-box {
@@ -119,7 +123,8 @@ body {
     flex-direction: column;
 }
 
-.charging-row .info-value {
+.charging-row .info-value,
+.temp-box .info-value {
     flex: 1;
     display: flex;
     align-items: center;
@@ -131,25 +136,11 @@ body {
     flex-direction: column;
 }
 
-.temp-box .info-value {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
 .control-row {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 12px;
     margin-bottom: 24px;
-}
-
-.control-box {
-    background: white;
-    padding: 15px;
-    border-radius: 14px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
 }
 
 .button-group {

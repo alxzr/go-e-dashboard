@@ -34,6 +34,13 @@ const runtimeSettings = {
     energyPriceEurPerKwh: config.energyPriceEurPerKwh
 };
 
+function getRuntimeSettingsResponse() {
+    return {
+        charger_host: runtimeSettings.chargerHost,
+        energy_price_eur_per_kwh: runtimeSettings.energyPriceEurPerKwh
+    };
+}
+
 function toFiniteNumber(value) {
     const numeric = Number(value);
     return Number.isFinite(numeric) ? numeric : null;
@@ -214,27 +221,6 @@ async function requestSetKey(key, value) {
     }
 }
 
-async function setFirstWorkingKey(candidates, value) {
-    let networkError = null;
-
-    for (const key of candidates) {
-        const result = await requestSetKey(key, value);
-        if (result.ok) {
-            return result;
-        }
-
-        if (result.reason === "network") {
-            networkError = result.error;
-        }
-    }
-
-    if (networkError) {
-        throw networkError;
-    }
-
-    throw new Error(HTTP_NO_COMPATIBLE_KEY_ERROR);
-}
-
 async function setFirstWorkingSetting(settings) {
     let networkError = null;
 
@@ -344,10 +330,7 @@ app.get("/api/status", async (req, res) => {
 });
 
 app.get("/api/settings", (req, res) => {
-    return res.json({
-        charger_host: runtimeSettings.chargerHost,
-        energy_price_eur_per_kwh: runtimeSettings.energyPriceEurPerKwh
-    });
+    return res.json(getRuntimeSettingsResponse());
 });
 
 app.post("/api/settings", async (req, res) => {
@@ -361,9 +344,6 @@ app.post("/api/settings", async (req, res) => {
         return res.status(400).json({ error: "Invalid energy price" });
     }
 
-    runtimeSettings.chargerHost = chargerHost;
-    runtimeSettings.energyPriceEurPerKwh = energyPrice;
-
     try {
         await persistSettingsToConfigFile({
             chargerHost,
@@ -373,10 +353,12 @@ app.post("/api/settings", async (req, res) => {
         return res.status(500).json({ error: "Failed to persist settings to config.js" });
     }
 
+    runtimeSettings.chargerHost = chargerHost;
+    runtimeSettings.energyPriceEurPerKwh = energyPrice;
+
     return res.json({
         success: true,
-        charger_host: runtimeSettings.chargerHost,
-        energy_price_eur_per_kwh: runtimeSettings.energyPriceEurPerKwh
+        ...getRuntimeSettingsResponse()
     });
 });
 
@@ -391,9 +373,9 @@ app.post("/api/settings/phases", async (req, res) => {
 
         let result;
         try {
-            result = await setFirstWorkingKey(["fsp"], setValues.fsp);
+            result = await setFirstWorkingSetting([{ key: "fsp", value: setValues.fsp }]);
         } catch {
-            result = await setFirstWorkingKey(["psm"], setValues.psm);
+            result = await setFirstWorkingSetting([{ key: "psm", value: setValues.psm }]);
         }
 
         return res.json({
@@ -414,7 +396,7 @@ app.post("/api/settings/current", async (req, res) => {
             return res.status(400).json({ error: "Invalid current value" });
         }
 
-        const result = await setFirstWorkingKey(["amp"], currentAmp);
+        const result = await setFirstWorkingSetting([{ key: "amp", value: currentAmp }]);
         return res.json({
             success: true,
             current_amp: currentAmp,

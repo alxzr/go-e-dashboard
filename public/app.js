@@ -25,6 +25,12 @@ const wifiBars = Array.from(document.querySelectorAll("#wifi-bars .wifi-bar"));
 const chargingButtons = Array.from(document.querySelectorAll("#charging-buttons button"));
 const phaseButtons = Array.from(document.querySelectorAll("#phase-buttons button"));
 const currentButtons = Array.from(document.querySelectorAll("#current-buttons button"));
+const allControlButtons = [...chargingButtons, ...phaseButtons, ...currentButtons];
+const phaseElements = PHASES.map(phase => ({
+    box: document.getElementById(`phase${phase}`),
+    voltage: document.getElementById(`v${phase}`),
+    current: document.getElementById(`a${phase}`)
+}));
 
 let isPolling = false;
 
@@ -51,13 +57,8 @@ function wifiBarsFromDbm(dbm) {
 
 function setWifiBars(dbm) {
     const level = wifiBarsFromDbm(dbm);
-
     wifiBars.forEach((bar, index) => {
-        if (index < level) {
-            bar.classList.add("on");
-        } else {
-            bar.classList.remove("on");
-        }
+        bar.classList.toggle("on", index < level);
     });
 }
 
@@ -125,70 +126,56 @@ function setActiveButton(buttons, dataAttr, selectedValue) {
 }
 
 function setControlsDisabled(disabled) {
-    [...chargingButtons, ...phaseButtons, ...currentButtons].forEach(button => {
+    allControlButtons.forEach(button => {
         button.disabled = disabled;
     });
 }
 
 function setPhaseMeasurements(voltages, currents) {
-    PHASES.forEach((phase, index) => {
+    phaseElements.forEach((phaseElementsForIndex, index) => {
         const voltage = voltages?.[index] ?? "-";
         const current = currents?.[index] ?? "-";
         const currentNumeric = toFiniteNumber(current);
-        const phaseBox = document.getElementById("phase" + phase);
 
-        setText(document.getElementById("v" + phase), voltage);
-        setText(document.getElementById("a" + phase), current);
-
-        if (!phaseBox) return;
-        phaseBox.classList.toggle("active", currentNumeric !== null && currentNumeric > 0);
+        setText(phaseElementsForIndex.voltage, voltage);
+        setText(phaseElementsForIndex.current, current);
+        phaseElementsForIndex.box?.classList.toggle("active", currentNumeric !== null && currentNumeric > 0);
     });
 }
 
-async function postJson(url, payload) {
-    const response = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-    });
+async function requestJson(url, options = {}) {
+    const { method = "GET", payload, fallbackError = "Request failed" } = options;
+    const requestOptions = { method };
 
+    if (payload !== undefined) {
+        requestOptions.headers = { "Content-Type": "application/json" };
+        requestOptions.body = JSON.stringify(payload);
+    }
+
+    const response = await fetch(url, requestOptions);
     const body = await response.json().catch(() => ({}));
+
     if (!response.ok) {
-        throw new Error(body.error || "Request failed");
+        throw new Error(body.error || fallbackError);
     }
 
     return body;
 }
 
-async function fetchStatus() {
-    const response = await fetch("/api/status");
-    if (!response.ok) {
-        throw new Error("Failed to fetch status");
-    }
-    return response.json();
+function fetchStatus() {
+    return requestJson("/api/status", { fallbackError: "Failed to fetch status" });
 }
 
-async function fetchSettings() {
-    const response = await fetch("/api/settings");
-    if (!response.ok) {
-        throw new Error("Failed to fetch settings");
-    }
-    return response.json();
+function fetchSettings() {
+    return requestJson("/api/settings", { fallbackError: "Failed to fetch settings" });
 }
 
-async function saveSettings(payload) {
-    const response = await fetch("/api/settings", {
+function saveSettings(payload) {
+    return requestJson("/api/settings", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+        payload,
+        fallbackError: "Failed to save settings"
     });
-
-    const body = await response.json().catch(() => ({}));
-    if (!response.ok) {
-        throw new Error(body.error || "Failed to save settings");
-    }
-
-    return body;
 }
 
 function openSettingsOverlay() {
@@ -283,36 +270,10 @@ async function loadStatus() {
     }
 }
 
-async function setPhases(phases) {
+async function runControlAction(url, payload) {
     try {
         setControlsDisabled(true);
-        await postJson("/api/settings/phases", { phases });
-        setControlMessage("");
-        await loadStatus();
-    } catch (error) {
-        setControlMessage(error.message, true);
-    } finally {
-        setControlsDisabled(false);
-    }
-}
-
-async function setCharging(action) {
-    try {
-        setControlsDisabled(true);
-        await postJson("/api/settings/charging", { action });
-        setControlMessage("");
-        await loadStatus();
-    } catch (error) {
-        setControlMessage(error.message, true);
-    } finally {
-        setControlsDisabled(false);
-    }
-}
-
-async function setCurrent(currentAmp) {
-    try {
-        setControlsDisabled(true);
-        await postJson("/api/settings/current", { current_amp: currentAmp });
+        await requestJson(url, { method: "POST", payload });
         setControlMessage("");
         await loadStatus();
     } catch (error) {
@@ -343,21 +304,21 @@ function bindControlEvents() {
     chargingButtons.forEach(button => {
         button.addEventListener("click", () => {
             const action = button.dataset.charging;
-            setCharging(action);
+            runControlAction("/api/settings/charging", { action });
         });
     });
 
     phaseButtons.forEach(button => {
         button.addEventListener("click", () => {
             const phases = Number(button.dataset.phase);
-            setPhases(phases);
+            runControlAction("/api/settings/phases", { phases });
         });
     });
 
     currentButtons.forEach(button => {
         button.addEventListener("click", () => {
             const currentAmp = Number(button.dataset.current);
-            setCurrent(currentAmp);
+            runControlAction("/api/settings/current", { current_amp: currentAmp });
         });
     });
 }
