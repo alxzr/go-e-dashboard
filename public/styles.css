@@ -27,13 +27,14 @@ body {
 
 .info-row {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
+    flex-wrap: wrap;
     gap: 10px;
     margin-bottom: 25px;
 }
 
 .info-box {
-    flex: 1;
+    flex: 1 1 140px;
     background: white;
     padding: 15px;
     border-radius: 14px;
@@ -50,6 +51,37 @@ body {
 .info-value {
     font-size: 1.2rem;
     font-weight: bold;
+}
+
+.wifi-bars {
+    height: 28px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 3px;
+    margin-bottom: 6px;
+}
+
+.wifi-bar {
+    width: 7px;
+    border-radius: 3px;
+    background: #d0d8e2;
+}
+
+.wifi-bar:nth-child(1) { height: 7px; }
+.wifi-bar:nth-child(2) { height: 11px; }
+.wifi-bar:nth-child(3) { height: 15px; }
+.wifi-bar:nth-child(4) { height: 20px; }
+.wifi-bar:nth-child(5) { height: 25px; }
+
+.wifi-bar.on {
+    background: #27ae60;
+}
+
+.wifi-text {
+    font-size: 0.95rem;
+    font-weight: bold;
+    color: #2c3e50;
 }
 
 .badge {

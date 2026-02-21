@@ -49,6 +49,20 @@
             </div>
         </div>
 
+        <div class="info-box">
+            <div class="label">WiFi Signal</div>
+            <div class="wifi-bars" id="wifi-bars" aria-label="WiFi signal strength">
+                <span class="wifi-bar"></span>
+                <span class="wifi-bar"></span>
+                <span class="wifi-bar"></span>
+                <span class="wifi-bar"></span>
+                <span class="wifi-bar"></span>
+            </div>
+            <div class="wifi-text">
+                <span id="wifi-signal">-</span> dBm
+            </div>
+        </div>
+
     </div>
 
     <div class="phase-grid">
@@ -72,6 +86,29 @@
 </div>
 
 <script>
+function wifiBarsFromDbm(dbm) {
+    if (!Number.isFinite(dbm)) return 0;
+    if (dbm >= -55) return 5;
+    if (dbm >= -62) return 4;
+    if (dbm >= -70) return 3;
+    if (dbm >= -78) return 2;
+    if (dbm >= -86) return 1;
+    return 0;
+}
+
+function setWifiBars(dbm) {
+    const level = wifiBarsFromDbm(dbm);
+    const bars = document.querySelectorAll("#wifi-bars .wifi-bar");
+
+    bars.forEach((bar, index) => {
+        if (index < level) {
+            bar.classList.add("on");
+        } else {
+            bar.classList.remove("on");
+        }
+    });
+}
+
 async function load() {
     try {
         const res = await fetch("/api/status");
@@ -81,6 +118,10 @@ async function load() {
         document.getElementById("energy").innerText = data.energy_kwh;
         document.getElementById("temp-type2").innerText = data.type2_temp ?? "-";
         document.getElementById("temp-supply").innerText = data.supply_temp ?? "-";
+        const wifiDbm = Number(data.wifi_signal_dbm);
+        document.getElementById("wifi-signal").innerText =
+            Number.isFinite(wifiDbm) ? wifiDbm.toFixed(0) : "-";
+        setWifiBars(wifiDbm);
 
         const statusEl = document.getElementById("status");
         statusEl.innerText = data.status_text;

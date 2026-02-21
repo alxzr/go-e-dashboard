@@ -9,6 +9,22 @@ const PHASE_THRESHOLD = 3;
 
 app.use(express.static("public"));
 
+function getWifiSignalDbm(data) {
+    const candidates = [
+        data.wss,
+        data.rssi,
+        data.wifi?.rssi
+    ];
+
+    for (const value of candidates) {
+        if (value !== null && value !== undefined && Number.isFinite(Number(value))) {
+            return Number(value);
+        }
+    }
+
+    return null;
+}
+
 app.get("/api/status", async (req, res) => {
     try {
         const response = await fetch(GOE_URL);
@@ -45,12 +61,14 @@ app.get("/api/status", async (req, res) => {
 
         const type2Temp = data.tma?.[0] ?? null;
         const supplyTemp = data.tma?.[1] ?? null;
+        const wifiSignalDbm = getWifiSignalDbm(data);
 
         res.json({
             power_kw: (data.nrg[7] / 1000).toFixed(2),
             energy_kwh: (data.wh / 1000).toFixed(2),
             type2_temp: type2Temp,
             supply_temp: supplyTemp,
+            wifi_signal_dbm: wifiSignalDbm,
             status_text: statusText,
             status_color: statusColor,
             voltages: voltages.map(v => v.toFixed(1)),
