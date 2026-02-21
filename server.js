@@ -329,6 +329,7 @@ function buildStatusResponse(data) {
         session_duration_state: chargingDuration.state,
         type2_temp: temperatures.type2Temp,
         supply_temp: temperatures.supplyTemp,
+        firmware_version: data.fwv ?? null,
         wifi_signal_dbm: getWifiSignalDbm(data),
         configured_phases: getConfiguredPhases(data),
         configured_current_amp: getConfiguredCurrentAmp(data),

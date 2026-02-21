@@ -11,6 +11,7 @@ const els = {
     sessionTime: document.getElementById("session-time"),
     tempType2: document.getElementById("temp-type2"),
     tempSupply: document.getElementById("temp-supply"),
+    firmwareVersion: document.getElementById("firmware-version"),
     wifiSignal: document.getElementById("wifi-signal"),
     controlMessage: document.getElementById("control-message"),
     openSettings: document.getElementById("open-settings"),
@@ -236,6 +237,7 @@ function applyStatus(data) {
 
     setText(els.tempType2, data.type2_temp ?? "-");
     setText(els.tempSupply, data.supply_temp ?? "-");
+    setText(els.firmwareVersion, `Firmware ${data.firmware_version ?? "-"}`);
 
     const wifiDbm = toFiniteNumber(data.wifi_signal_dbm);
     setText(els.wifiSignal, wifiDbm === null ? "-" : wifiDbm.toFixed(0));
