@@ -12,8 +12,14 @@
 <div class="container">
 
     <div class="power-display">
-        <span id="power">-</span>
-        <span class="unit">kW</span>
+        <div class="power-value-row">
+            <span id="power">-</span>
+            <span class="unit">kW</span>
+        </div>
+        <div class="power-meta">
+            <span class="live-dot" aria-hidden="true"></span>
+            <span id="live-status">-</span>
+        </div>
     </div>
 
     <div class="section-title">Charging</div>
@@ -148,6 +154,23 @@ function setWifiBars(dbm) {
     });
 }
 
+function setPowerMetaStatus(statusText) {
+    const liveStatusEl = document.getElementById("live-status");
+    const dotEl = document.querySelector(".live-dot");
+    const normalized = String(statusText || "");
+
+    if (normalized === "Waiting for car") {
+        liveStatusEl.innerText = "Waiting for car";
+        dotEl.classList.add("offline");
+        dotEl.classList.remove("online");
+        return;
+    }
+
+    liveStatusEl.innerText = normalized || "Unknown";
+    dotEl.classList.add("online");
+    dotEl.classList.remove("offline");
+}
+
 function setControlMessage(text, isError = false) {
     const el = document.getElementById("control-message");
     if (!text) {
@@ -239,6 +262,7 @@ async function load() {
         const statusEl = document.getElementById("status");
         statusEl.innerText = data.status_text;
         statusEl.className = "badge " + data.status_color;
+        setPowerMetaStatus(data.status_text);
 
         document.getElementById("configured-phases").innerText =
             data.configured_phases ? data.configured_phases + "-phase" : "-";
