@@ -1,4 +1,4 @@
-# go-e Charger Dashboard
+# go-e Charger WebUI Dashboard
 
 A lightweight Node.js dashboard for monitoring and controlling a go-e charger via its local HTTP API.
 
