@@ -92,10 +92,13 @@ body {
 }
 
 .control-message {
-    min-height: 20px;
     font-size: 0.9rem;
     color: #2c3e50;
     margin-bottom: 16px;
+}
+
+.control-message.hidden {
+    display: none;
 }
 
 .control-message.error {

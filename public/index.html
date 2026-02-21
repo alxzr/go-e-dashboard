@@ -32,11 +32,6 @@
         </div>
 
         <div class="info-box">
-            <div class="label">Phases</div>
-            <div class="info-value" id="phase-count">-</div>
-        </div>
-
-        <div class="info-box">
             <div class="label">Configured Phases</div>
             <div class="info-value" id="configured-phases">-</div>
         </div>
@@ -104,7 +99,7 @@
             </div>
         </div>
     </div>
-    <div id="control-message" class="control-message"></div>
+    <div id="control-message" class="control-message hidden"></div>
 
     <div class="phase-grid">
         <div class="phase" id="phase1">
@@ -152,6 +147,12 @@ function setWifiBars(dbm) {
 
 function setControlMessage(text, isError = false) {
     const el = document.getElementById("control-message");
+    if (!text) {
+        el.innerText = "";
+        el.className = "control-message hidden";
+        return;
+    }
+
     el.innerText = text;
     el.className = "control-message" + (isError ? " error" : "");
 }
@@ -184,8 +185,8 @@ async function postJson(url, payload) {
 
 async function setPhases(phases) {
     try {
-        const result = await postJson("/api/settings/phases", { phases });
-        setControlMessage(`Configured phases set to ${phases} (key: ${result.used_key}).`);
+        await postJson("/api/settings/phases", { phases });
+        setControlMessage("");
         await load();
     } catch (error) {
         setControlMessage(error.message, true);
@@ -195,7 +196,7 @@ async function setPhases(phases) {
 async function setCurrent(currentAmp) {
     try {
         await postJson("/api/settings/current", { current_amp: currentAmp });
-        setControlMessage(`Configured current set to ${currentAmp}A.`);
+        setControlMessage("");
         await load();
     } catch (error) {
         setControlMessage(error.message, true);
@@ -236,8 +237,6 @@ async function load() {
         statusEl.innerText = data.status_text;
         statusEl.className = "badge " + data.status_color;
 
-        document.getElementById("phase-count").innerText =
-            data.active_phases + "-phase";
         document.getElementById("configured-phases").innerText =
             data.configured_phases ? data.configured_phases + "-phase" : "-";
         document.getElementById("configured-current").innerText =
