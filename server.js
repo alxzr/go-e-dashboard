@@ -128,7 +128,7 @@ function getSetEndpointError(error, fallbackMessage) {
     return { status: 500, error: fallbackMessage };
 }
 
-function parseChargingDuration(cdi) {
+function parseChargingDuration(cdi, rebootTimerMs) {
     const toSeconds = (rawValue, isMilliseconds = false) => {
         const numeric = toFiniteNumber(rawValue);
         if (numeric === null) {
@@ -154,14 +154,35 @@ function parseChargingDuration(cdi) {
     }
 
     const type = toFiniteNumber(cdi.type);
-    const valueSeconds = toSeconds(cdi.value, type === 1);
+    const value = toFiniteNumber(cdi.value);
 
+    if (value === null) {
+        return { seconds: null, state: "invalid" };
+    }
+
+    if (type === 0) {
+        const counterNowMs = toFiniteNumber(rebootTimerMs);
+        if (counterNowMs === null) {
+            return { seconds: null, state: "counter_missing_rbt" };
+        }
+
+        const elapsedMs = counterNowMs - value;
+        if (!Number.isFinite(elapsedMs) || elapsedMs < 0) {
+            return { seconds: null, state: "counter_invalid_range" };
+        }
+
+        return {
+            seconds: toSeconds(elapsedMs, true),
+            state: "counter"
+        };
+    }
+
+    const valueSeconds = toSeconds(value, type === 1);
     if (valueSeconds === null) {
         return { seconds: null, state: "invalid" };
     }
 
     const stateByType = {
-        0: "counter",
         1: "duration_ms"
     };
 
@@ -296,7 +317,7 @@ function buildStatusResponse(data) {
     const sessionCostEur = Number.isFinite(chargedWh)
         ? (chargedWh / 1000) * runtimeSettings.energyPriceEurPerKwh
         : null;
-    const chargingDuration = parseChargingDuration(data.cdi);
+    const chargingDuration = parseChargingDuration(data.cdi, data.rbt);
     const temperatures = getTemperatures(data.tma);
     const chargingAllowed = getChargingAllowed(data);
 
