@@ -59,3 +59,7 @@ Use the `Settings` button at the bottom of the dashboard to change:
 - Energy price (EUR/kWh)
 
 These settings are applied immediately and persisted to `config.js`, so they remain after a restart.
+
+## Screenshot
+
+![go-e Charger Dashboard](docs/screenshot.png)
