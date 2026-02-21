@@ -14,25 +14,24 @@ app.get("/api/status", async (req, res) => {
         const response = await fetch(GOE_URL);
         const data = await response.json();
 
+        const carStatusMap = {
+            0: { text: "Unknown", color: "gray" },
+            1: { text: "Idle", color: "blue" },
+            2: { text: "Charging", color: "green" },
+            3: { text: "Waiting for car", color: "orange" },
+            4: { text: "Complete", color: "green" },
+            5: { text: "Error", color: "red" }
+        };
+
         let statusText = "Unknown";
         let statusColor = "gray";
 
-        switch (data.car) {
-            case 1:
-                statusText = "No vehicle";
-                break;
-            case 2:
-                statusText = "Charging";
-                statusColor = "green";
-                break;
-            case 3:
-                statusText = "Connected";
-                statusColor = "blue";
-                break;
-            case 4:
-                statusText = "Error";
-                statusColor = "red";
-                break;
+        if (data.car === null) {
+            statusText = "Internal error";
+            statusColor = "red";
+        } else if (carStatusMap[data.car]) {
+            statusText = carStatusMap[data.car].text;
+            statusColor = carStatusMap[data.car].color;
         }
 
         const voltages = data.nrg.slice(0, 3);
