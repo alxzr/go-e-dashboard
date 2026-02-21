@@ -16,6 +16,7 @@ const els = {
 };
 
 const wifiBars = Array.from(document.querySelectorAll("#wifi-bars .wifi-bar"));
+const chargingButtons = Array.from(document.querySelectorAll("#charging-buttons button"));
 const phaseButtons = Array.from(document.querySelectorAll("#phase-buttons button"));
 const currentButtons = Array.from(document.querySelectorAll("#current-buttons button"));
 
@@ -118,7 +119,7 @@ function setActiveButton(buttons, dataAttr, selectedValue) {
 }
 
 function setControlsDisabled(disabled) {
-    [...phaseButtons, ...currentButtons].forEach(button => {
+    [...chargingButtons, ...phaseButtons, ...currentButtons].forEach(button => {
         button.disabled = disabled;
     });
 }
@@ -185,6 +186,9 @@ function applyStatus(data) {
     }
     setPowerMetaStatus(data.status_text);
 
+    const chargingState = data.charging_allowed === true ? "start" :
+        data.charging_allowed === false ? "stop" : null;
+    setActiveButton(chargingButtons, "charging", chargingState);
     setActiveButton(phaseButtons, "phase", data.configured_phases);
     setActiveButton(currentButtons, "current", data.configured_current_amp);
     setPhaseMeasurements(data.voltages, data.currents);
@@ -218,6 +222,19 @@ async function setPhases(phases) {
     }
 }
 
+async function setCharging(action) {
+    try {
+        setControlsDisabled(true);
+        await postJson("/api/settings/charging", { action });
+        setControlMessage("");
+        await loadStatus();
+    } catch (error) {
+        setControlMessage(error.message, true);
+    } finally {
+        setControlsDisabled(false);
+    }
+}
+
 async function setCurrent(currentAmp) {
     try {
         setControlsDisabled(true);
@@ -232,6 +249,13 @@ async function setCurrent(currentAmp) {
 }
 
 function bindControlEvents() {
+    chargingButtons.forEach(button => {
+        button.addEventListener("click", () => {
+            const action = button.dataset.charging;
+            setCharging(action);
+        });
+    });
+
     phaseButtons.forEach(button => {
         button.addEventListener("click", () => {
             const phases = Number(button.dataset.phase);

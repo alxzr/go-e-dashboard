@@ -76,6 +76,14 @@ function getConfiguredCurrentAmp(data) {
     return null;
 }
 
+function getChargingAllowed(data) {
+    const alw = toFiniteNumber(data.alw);
+    if (alw === null) return null;
+    if (alw === 0) return false;
+    if (alw === 1) return true;
+    return null;
+}
+
 function getStatusPresentation(carValue) {
     if (carValue === null) {
         return { text: "Internal error", color: "red" };
@@ -214,6 +222,27 @@ async function setFirstWorkingKey(candidates, value) {
     throw new Error(HTTP_NO_COMPATIBLE_KEY_ERROR);
 }
 
+async function setFirstWorkingSetting(settings) {
+    let networkError = null;
+
+    for (const setting of settings) {
+        const result = await requestSetKey(setting.key, setting.value);
+        if (result.ok) {
+            return { ...result, value: setting.value };
+        }
+
+        if (result.reason === "network") {
+            networkError = result.error;
+        }
+    }
+
+    if (networkError) {
+        throw networkError;
+    }
+
+    throw new Error(HTTP_NO_COMPATIBLE_KEY_ERROR);
+}
+
 function getArrayNumber(values, index, fallback = 0) {
     if (!Array.isArray(values)) return fallback;
     const numeric = toFiniteNumber(values[index]);
@@ -241,6 +270,7 @@ function buildStatusResponse(data) {
         : null;
     const chargingDuration = parseChargingDuration(data.cdi);
     const temperatures = getTemperatures(data.tma);
+    const chargingAllowed = getChargingAllowed(data);
 
     return {
         power_kw: (powerW / 1000).toFixed(2),
@@ -253,6 +283,7 @@ function buildStatusResponse(data) {
         wifi_signal_dbm: getWifiSignalDbm(data),
         configured_phases: getConfiguredPhases(data),
         configured_current_amp: getConfiguredCurrentAmp(data),
+        charging_allowed: chargingAllowed,
         status_text: status.text,
         status_color: status.color,
         voltages: voltages.map(v => v.toFixed(1)),
@@ -312,6 +343,39 @@ app.post("/api/settings/current", async (req, res) => {
         });
     } catch (error) {
         const responseError = getSetEndpointError(error, "Failed to update configured current");
+        return res.status(responseError.status).json({ error: responseError.error });
+    }
+});
+
+app.post("/api/settings/charging", async (req, res) => {
+    try {
+        const action = String(req.body?.action || "").toLowerCase();
+        if (!["start", "stop"].includes(action)) {
+            return res.status(400).json({ error: "Invalid charging action" });
+        }
+
+        const settingsToTry = action === "start"
+            ? [
+                { key: "alw", value: 1 },
+                { key: "frc", value: 2 },
+                { key: "frc", value: 1 }
+            ]
+            : [
+                { key: "alw", value: 0 },
+                { key: "frc", value: 1 },
+                { key: "frc", value: 2 }
+            ];
+
+        const result = await setFirstWorkingSetting(settingsToTry);
+
+        return res.json({
+            success: true,
+            action,
+            used_key: result.key,
+            used_value: result.value
+        });
+    } catch (error) {
+        const responseError = getSetEndpointError(error, "Failed to update charging state");
         return res.status(responseError.status).json({ error: responseError.error });
     }
 });

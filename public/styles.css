@@ -140,7 +140,7 @@ body {
 
 .control-row {
     display: grid;
-    grid-template-columns: repeat(2, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 12px;
     margin-bottom: 24px;
 }
@@ -298,12 +298,12 @@ body {
         font-size: 3.2rem;
     }
 
-    .info-row {
-        flex-direction: column;
-    }
-
     .control-row {
         grid-template-columns: 1fr;
+    }
+
+    .info-row {
+        flex-direction: column;
     }
 
     .phase-grid {

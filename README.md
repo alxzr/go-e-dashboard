@@ -15,6 +15,7 @@ A lightweight Node.js dashboard for monitoring and controlling a go-e charger vi
   - Type 2 temperature
   - Supply temperature
 - Control section:
+  - Charging start/stop
   - Phase switching (1 / 3)
   - Charging current presets (6 / 10 / 12 / 14 / 16 A)
 - Live per-phase voltage/current values with active phase highlighting
