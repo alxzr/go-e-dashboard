@@ -33,6 +33,15 @@ body {
     margin-bottom: 25px;
 }
 
+.section-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #5b6777;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin: 18px 0 10px;
+}
+
 .info-box {
     flex: 1 1 140px;
     background: white;
@@ -40,6 +49,57 @@ body {
     border-radius: 14px;
     text-align: center;
     box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.control-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(220px, 1fr));
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.control-box {
+    background: white;
+    padding: 15px;
+    border-radius: 14px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.button-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.button-group button {
+    border: 1px solid #d0d8e2;
+    background: #f8fafc;
+    color: #2c3e50;
+    border-radius: 10px;
+    padding: 8px 10px;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.button-group button:hover {
+    background: #eef3f9;
+}
+
+.button-group button.selected {
+    background: #2ecc71;
+    border-color: #2ecc71;
+    color: white;
+}
+
+.control-message {
+    min-height: 20px;
+    font-size: 0.9rem;
+    color: #2c3e50;
+    margin-bottom: 16px;
+}
+
+.control-message.error {
+    color: #c0392b;
 }
 
 .label {
@@ -131,6 +191,10 @@ body {
 
     .info-row {
         flex-direction: column;
+    }
+
+    .control-row {
+        grid-template-columns: 1fr;
     }
 
     .phase-grid {

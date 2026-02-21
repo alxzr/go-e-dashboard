@@ -16,6 +16,7 @@
         <span class="unit">kW</span>
     </div>
 
+    <div class="section-title">Charging</div>
     <div class="info-row">
 
         <div class="info-box">
@@ -36,18 +37,21 @@
         </div>
 
         <div class="info-box">
-            <div class="label">Type 2 Temp</div>
-            <div class="info-value">
-                <span id="temp-type2">-</span> °C
-            </div>
+            <div class="label">Configured Phases</div>
+            <div class="info-value" id="configured-phases">-</div>
         </div>
 
         <div class="info-box">
-            <div class="label">Supply Temp</div>
+            <div class="label">Configured Current</div>
             <div class="info-value">
-                <span id="temp-supply">-</span> °C
+                <span id="configured-current">-</span> A
             </div>
         </div>
+
+    </div>
+
+    <div class="section-title">System</div>
+    <div class="info-row">
 
         <div class="info-box">
             <div class="label">WiFi Signal</div>
@@ -63,7 +67,44 @@
             </div>
         </div>
 
+        <div class="info-box">
+            <div class="label">Type 2 Temp</div>
+            <div class="info-value">
+                <span id="temp-type2">-</span> °C
+            </div>
+        </div>
+
+        <div class="info-box">
+            <div class="label">Supply Temp</div>
+            <div class="info-value">
+                <span id="temp-supply">-</span> °C
+            </div>
+        </div>
+
     </div>
+
+    <div class="section-title">Controls</div>
+    <div class="control-row">
+        <div class="control-box">
+            <div class="label">Set Phases</div>
+            <div class="button-group" id="phase-buttons">
+                <button type="button" data-phase="1">1 phase</button>
+                <button type="button" data-phase="3">3 phase</button>
+            </div>
+        </div>
+
+        <div class="control-box">
+            <div class="label">Set Current</div>
+            <div class="button-group" id="current-buttons">
+                <button type="button" data-current="6">6A</button>
+                <button type="button" data-current="10">10A</button>
+                <button type="button" data-current="12">12A</button>
+                <button type="button" data-current="14">14A</button>
+                <button type="button" data-current="16">16A</button>
+            </div>
+        </div>
+    </div>
+    <div id="control-message" class="control-message"></div>
 
     <div class="phase-grid">
         <div class="phase" id="phase1">
@@ -109,6 +150,74 @@ function setWifiBars(dbm) {
     });
 }
 
+function setControlMessage(text, isError = false) {
+    const el = document.getElementById("control-message");
+    el.innerText = text;
+    el.className = "control-message" + (isError ? " error" : "");
+}
+
+function setActiveButton(containerId, dataAttr, selectedValue) {
+    const buttons = document.querySelectorAll(`#${containerId} button`);
+    buttons.forEach(button => {
+        if (button.dataset[dataAttr] === String(selectedValue)) {
+            button.classList.add("selected");
+        } else {
+            button.classList.remove("selected");
+        }
+    });
+}
+
+async function postJson(url, payload) {
+    const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+    });
+
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) {
+        throw new Error(body.error || "Request failed");
+    }
+
+    return body;
+}
+
+async function setPhases(phases) {
+    try {
+        const result = await postJson("/api/settings/phases", { phases });
+        setControlMessage(`Configured phases set to ${phases} (key: ${result.used_key}).`);
+        await load();
+    } catch (error) {
+        setControlMessage(error.message, true);
+    }
+}
+
+async function setCurrent(currentAmp) {
+    try {
+        await postJson("/api/settings/current", { current_amp: currentAmp });
+        setControlMessage(`Configured current set to ${currentAmp}A.`);
+        await load();
+    } catch (error) {
+        setControlMessage(error.message, true);
+    }
+}
+
+function bindControlEvents() {
+    document.querySelectorAll("#phase-buttons button").forEach(button => {
+        button.addEventListener("click", () => {
+            const phases = Number(button.dataset.phase);
+            setPhases(phases);
+        });
+    });
+
+    document.querySelectorAll("#current-buttons button").forEach(button => {
+        button.addEventListener("click", () => {
+            const currentAmp = Number(button.dataset.current);
+            setCurrent(currentAmp);
+        });
+    });
+}
+
 async function load() {
     try {
         const res = await fetch("/api/status");
@@ -129,6 +238,12 @@ async function load() {
 
         document.getElementById("phase-count").innerText =
             data.active_phases + "-phase";
+        document.getElementById("configured-phases").innerText =
+            data.configured_phases ? data.configured_phases + "-phase" : "-";
+        document.getElementById("configured-current").innerText =
+            data.configured_current_amp ?? "-";
+        setActiveButton("phase-buttons", "phase", data.configured_phases);
+        setActiveButton("current-buttons", "current", data.configured_current_amp);
 
         for (let i = 0; i < 3; i++) {
             document.getElementById("v" + (i+1)).innerText = data.voltages[i];
@@ -148,6 +263,7 @@ async function load() {
 }
 
 setInterval(load, 3000);
+bindControlEvents();
 load();
 </script>
 
