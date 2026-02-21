@@ -40,6 +40,11 @@
             <div class="sub-value" id="session-cost">( - EUR )</div>
         </div>
 
+        <div class="info-box">
+            <div class="label">Session Time</div>
+            <div class="info-value" id="session-time">--:--:--</div>
+        </div>
+
     </div>
 
     <div class="section-title">System</div>
@@ -172,6 +177,21 @@ function setControlMessage(text, isError = false) {
     el.className = "control-message" + (isError ? " error" : "");
 }
 
+function formatDuration(seconds) {
+    const total = Number(seconds);
+    if (!Number.isFinite(total) || total < 0) {
+        return "--:--:--";
+    }
+
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = total % 60;
+
+    return String(h).padStart(2, "0") + ":" +
+        String(m).padStart(2, "0") + ":" +
+        String(s).padStart(2, "0");
+}
+
 function setActiveButton(containerId, dataAttr, selectedValue) {
     const buttons = document.querySelectorAll(`#${containerId} button`);
     buttons.forEach(button => {
@@ -247,6 +267,10 @@ async function load() {
         } else {
             document.getElementById("session-cost").innerText = "( - EUR )";
         }
+        document.getElementById("session-time").innerText =
+            data.session_duration_state === "not_charging"
+                ? "--:--:--"
+                : formatDuration(data.session_duration_sec);
         document.getElementById("temp-type2").innerText = data.type2_temp ?? "-";
         document.getElementById("temp-supply").innerText = data.supply_temp ?? "-";
         const wifiDbm = Number(data.wifi_signal_dbm);

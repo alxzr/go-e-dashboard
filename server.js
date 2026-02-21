@@ -85,6 +85,49 @@ function getPhaseSetValues(phases) {
     };
 }
 
+function parseChargingDuration(cdi) {
+    const toSeconds = (rawValue, isMilliseconds = false) => {
+        const numeric = toFiniteNumber(rawValue);
+        if (numeric === null) {
+            return null;
+        }
+        const seconds = isMilliseconds ? numeric / 1000 : numeric;
+        return Math.max(0, Math.floor(seconds));
+    };
+
+    if (cdi === null || cdi === undefined) {
+        return { seconds: null, state: "not_charging" };
+    }
+
+    if (typeof cdi === "number") {
+        return {
+            seconds: toSeconds(cdi),
+            state: "legacy_number"
+        };
+    }
+
+    if (typeof cdi !== "object") {
+        return { seconds: null, state: "invalid" };
+    }
+
+    const type = toFiniteNumber(cdi.type);
+    const valueSeconds = toSeconds(cdi.value, type === 1);
+
+    if (valueSeconds === null) {
+        return { seconds: null, state: "invalid" };
+    }
+
+    const stateByType = {
+        0: "counter",
+        1: "duration_ms"
+    };
+
+    return {
+        seconds: valueSeconds,
+        state: stateByType[type] ?? "unknown_type"
+    };
+}
+
 async function fetchChargerStatus() {
     const response = await fetch(GOE_URL);
     if (!response.ok) {
@@ -123,11 +166,14 @@ function buildStatusResponse(data) {
     const sessionCostEur = Number.isFinite(chargedWh)
         ? (chargedWh / 1000) * ENERGY_PRICE_EUR_PER_KWH
         : null;
+    const chargingDuration = parseChargingDuration(data.cdi);
 
     return {
         power_kw: (data.nrg[7] / 1000).toFixed(2),
         energy_kwh: (data.wh / 1000).toFixed(2),
         session_cost_eur: sessionCostEur,
+        session_duration_sec: chargingDuration.seconds,
+        session_duration_state: chargingDuration.state,
         type2_temp: data.tma?.[0] ?? null,
         supply_temp: data.tma?.[1] ?? null,
         wifi_signal_dbm: getWifiSignalDbm(data),
