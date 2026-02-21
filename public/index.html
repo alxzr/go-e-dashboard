@@ -37,6 +37,7 @@
             <div class="info-value">
                 <span id="energy">-</span> kWh
             </div>
+            <div class="sub-value" id="session-cost">( - EUR )</div>
         </div>
 
         <div class="info-box">
@@ -252,6 +253,12 @@ async function load() {
 
         document.getElementById("power").innerText = data.power_kw;
         document.getElementById("energy").innerText = data.energy_kwh;
+        if (Number.isFinite(Number(data.session_cost_eur))) {
+            const formattedCost = Number(data.session_cost_eur).toFixed(2).replace(".", ",");
+            document.getElementById("session-cost").innerText = `(${formattedCost} EUR)`;
+        } else {
+            document.getElementById("session-cost").innerText = "( - EUR )";
+        }
         document.getElementById("temp-type2").innerText = data.type2_temp ?? "-";
         document.getElementById("temp-supply").innerText = data.supply_temp ?? "-";
         const wifiDbm = Number(data.wifi_signal_dbm);

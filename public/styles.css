@@ -203,6 +203,13 @@ body {
     font-weight: bold;
 }
 
+.sub-value {
+    margin-top: 4px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #5f6f82;
+}
+
 .wifi-bars {
     height: 28px;
     display: flex;

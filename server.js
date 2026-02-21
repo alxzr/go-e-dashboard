@@ -1,12 +1,14 @@
 import express from "express";
 import fetch from "node-fetch";
+import config from "./config.js";
 
 const app = express();
-const PORT = 3000;
+const PORT = config.port;
 
-const GOE_URL = "http://192.168.178.113/api/status";
+const GOE_URL = `http://${config.chargerHost}/api/status`;
 const GOE_SET_URL = GOE_URL.replace("/api/status", "/api/set");
-const PHASE_THRESHOLD = 3;
+const PHASE_THRESHOLD = config.phaseThreshold;
+const ENERGY_PRICE_EUR_PER_KWH = config.energyPriceEurPerKwh;
 const ALLOWED_PHASES = new Set([1, 3]);
 const ALLOWED_CURRENTS = new Set([6, 10, 12, 14, 16]);
 
@@ -117,10 +119,15 @@ function buildStatusResponse(data) {
     const currentsRaw = data.nrg.slice(3, 6);
     const currents = currentsRaw.map(a => (a > PHASE_THRESHOLD ? a : 0));
     const activePhases = currents.filter(a => a > 0).length;
+    const chargedWh = Number(data.wh);
+    const sessionCostEur = Number.isFinite(chargedWh)
+        ? (chargedWh / 1000) * ENERGY_PRICE_EUR_PER_KWH
+        : null;
 
     return {
         power_kw: (data.nrg[7] / 1000).toFixed(2),
         energy_kwh: (data.wh / 1000).toFixed(2),
+        session_cost_eur: sessionCostEur,
         type2_temp: data.tma?.[0] ?? null,
         supply_temp: data.tma?.[1] ?? null,
         wifi_signal_dbm: getWifiSignalDbm(data),
