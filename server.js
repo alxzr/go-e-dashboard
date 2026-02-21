@@ -201,18 +201,22 @@ function buildSetUrl(key, value) {
 }
 
 async function fetchChargerStatus() {
+    let response;
+
     try {
-        const response = await fetchWithTimeout(buildStatusUrl());
-        if (!response.ok) {
-            throw new Error(`Charger status request failed (${response.status})`);
-        }
-        return response.json();
+        response = await fetchWithTimeout(buildStatusUrl());
     } catch (error) {
         if (error?.name === "AbortError") {
             throw new Error(`Charger status request timed out (${REQUEST_TIMEOUT_MS}ms)`);
         }
         throw error;
     }
+
+    if (!response.ok) {
+        throw new Error(`Charger status request failed (${response.status})`);
+    }
+
+    return response.json();
 }
 
 async function fetchWithTimeout(url, timeoutMs = REQUEST_TIMEOUT_MS) {

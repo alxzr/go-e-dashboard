@@ -327,11 +327,17 @@ function bindControlEvents() {
 
 async function startPolling() {
     bindControlEvents();
-
-    while (true) {
-        await loadStatus();
-        await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL_MS));
-    }
+    await loadStatus();
+    scheduleNextPoll();
 }
 
-startPolling();
+function scheduleNextPoll() {
+    setTimeout(async () => {
+        await loadStatus();
+        scheduleNextPoll();
+    }, POLL_INTERVAL_MS);
+}
+
+void startPolling().catch(error => {
+    console.error("Polling initialization failed", error);
+});
