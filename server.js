@@ -1,15 +1,14 @@
 import express from "express";
 import fetch from "node-fetch";
+import { writeFile } from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import config from "./config.js";
 
-const CHARGER_HOST = config.chargerHost;
 const PORT = config.port;
 const PHASE_THRESHOLD = config.phaseThreshold;
-const ENERGY_PRICE_EUR_PER_KWH = config.energyPriceEurPerKwh;
 const REQUEST_TIMEOUT_MS = config.requestTimeoutMs;
 
-const GOE_URL = `http://${CHARGER_HOST}/api/status`;
-const GOE_SET_URL = GOE_URL.replace("/api/status", "/api/set");
 const ALLOWED_PHASES = new Set([1, 3]);
 const ALLOWED_CURRENTS = new Set([6, 10, 12, 14, 16]);
 
@@ -23,11 +22,17 @@ const CAR_STATUS_MAP = {
 };
 
 const HTTP_NO_COMPATIBLE_KEY_ERROR = "No compatible key accepted by charger";
+const CONFIG_FILE_PATH = path.join(path.dirname(fileURLToPath(import.meta.url)), "config.js");
 
 const app = express();
 app.disable("x-powered-by");
 app.use(express.static("public"));
 app.use(express.json());
+
+const runtimeSettings = {
+    chargerHost: config.chargerHost,
+    energyPriceEurPerKwh: config.energyPriceEurPerKwh
+};
 
 function toFiniteNumber(value) {
     const numeric = Number(value);
@@ -159,9 +164,17 @@ function parseChargingDuration(cdi) {
     };
 }
 
+function buildStatusUrl() {
+    return `http://${runtimeSettings.chargerHost}/api/status`;
+}
+
+function buildSetUrl(key, value) {
+    return `http://${runtimeSettings.chargerHost}/api/set?${key}=${encodeURIComponent(value)}`;
+}
+
 async function fetchChargerStatus() {
     try {
-        const response = await fetchWithTimeout(GOE_URL);
+        const response = await fetchWithTimeout(buildStatusUrl());
         if (!response.ok) {
             throw new Error(`Charger status request failed (${response.status})`);
         }
@@ -186,7 +199,7 @@ async function fetchWithTimeout(url, timeoutMs = REQUEST_TIMEOUT_MS) {
 }
 
 async function requestSetKey(key, value) {
-    const url = `${GOE_SET_URL}?${key}=${encodeURIComponent(value)}`;
+    const url = buildSetUrl(key, value);
 
     try {
         const response = await fetchWithTimeout(url);
@@ -243,6 +256,35 @@ async function setFirstWorkingSetting(settings) {
     throw new Error(HTTP_NO_COMPATIBLE_KEY_ERROR);
 }
 
+async function persistSettingsToConfigFile(overrides) {
+    const nextConfig = {
+        ...config,
+        ...overrides
+    };
+
+    const orderedKeys = [
+        "chargerHost",
+        "port",
+        "phaseThreshold",
+        "energyPriceEurPerKwh",
+        "requestTimeoutMs"
+    ];
+
+    const formatValue = value => {
+        if (typeof value === "string") {
+            return JSON.stringify(value);
+        }
+        return String(value);
+    };
+
+    const lines = orderedKeys
+        .filter(key => Object.prototype.hasOwnProperty.call(nextConfig, key))
+        .map(key => `    ${key}: ${formatValue(nextConfig[key])},`);
+
+    const content = `const config = {\n${lines.join("\n")}\n};\n\nexport default config;\n`;
+    await writeFile(CONFIG_FILE_PATH, content, "utf8");
+}
+
 function getArrayNumber(values, index, fallback = 0) {
     if (!Array.isArray(values)) return fallback;
     const numeric = toFiniteNumber(values[index]);
@@ -266,7 +308,7 @@ function buildStatusResponse(data) {
     const powerW = getArrayNumber(data.nrg, 7);
     const chargedWh = toFiniteNumber(data.wh) ?? 0;
     const sessionCostEur = Number.isFinite(chargedWh)
-        ? (chargedWh / 1000) * ENERGY_PRICE_EUR_PER_KWH
+        ? (chargedWh / 1000) * runtimeSettings.energyPriceEurPerKwh
         : null;
     const chargingDuration = parseChargingDuration(data.cdi);
     const temperatures = getTemperatures(data.tma);
@@ -299,6 +341,43 @@ app.get("/api/status", async (req, res) => {
     } catch (error) {
         res.status(500).json({ error: "Failed to fetch go-e data" });
     }
+});
+
+app.get("/api/settings", (req, res) => {
+    return res.json({
+        charger_host: runtimeSettings.chargerHost,
+        energy_price_eur_per_kwh: runtimeSettings.energyPriceEurPerKwh
+    });
+});
+
+app.post("/api/settings", async (req, res) => {
+    const chargerHost = String(req.body?.charger_host || "").trim();
+    const energyPrice = Number(req.body?.energy_price_eur_per_kwh);
+
+    if (!chargerHost) {
+        return res.status(400).json({ error: "Invalid charger host" });
+    }
+    if (!Number.isFinite(energyPrice) || energyPrice < 0) {
+        return res.status(400).json({ error: "Invalid energy price" });
+    }
+
+    runtimeSettings.chargerHost = chargerHost;
+    runtimeSettings.energyPriceEurPerKwh = energyPrice;
+
+    try {
+        await persistSettingsToConfigFile({
+            chargerHost,
+            energyPriceEurPerKwh: energyPrice
+        });
+    } catch (error) {
+        return res.status(500).json({ error: "Failed to persist settings to config.js" });
+    }
+
+    return res.json({
+        success: true,
+        charger_host: runtimeSettings.chargerHost,
+        energy_price_eur_per_kwh: runtimeSettings.energyPriceEurPerKwh
+    });
 });
 
 app.post("/api/settings/phases", async (req, res) => {

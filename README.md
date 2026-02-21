@@ -18,6 +18,9 @@ A lightweight Node.js dashboard for monitoring and controlling a go-e charger vi
   - Charging start/stop
   - Phase switching (1 / 3)
   - Charging current presets (6 / 10 / 12 / 14 / 16 A)
+- In-app `Settings` button (bottom) with overlay for:
+  - Charger IP/host
+  - Energy price (EUR/kWh)
 - Live per-phase voltage/current values with active phase highlighting
 - Responsive UI for desktop and mobile
 
@@ -47,3 +50,12 @@ npm start
 ```
 
 4. Open `http://localhost:3000`.
+
+## In-App Settings
+
+Use the `Settings` button at the bottom of the dashboard to change:
+
+- Charger IP/host
+- Energy price (EUR/kWh)
+
+These settings are applied immediately and persisted to `config.js`, so they remain after a restart.

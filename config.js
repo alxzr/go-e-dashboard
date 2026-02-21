@@ -3,7 +3,7 @@ const config = {
     port: 3000,
     phaseThreshold: 3,
     energyPriceEurPerKwh: 0.25,
-    requestTimeoutMs: 4000
+    requestTimeoutMs: 4000,
 };
 
 export default config;

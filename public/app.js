@@ -12,7 +12,13 @@ const els = {
     tempType2: document.getElementById("temp-type2"),
     tempSupply: document.getElementById("temp-supply"),
     wifiSignal: document.getElementById("wifi-signal"),
-    controlMessage: document.getElementById("control-message")
+    controlMessage: document.getElementById("control-message"),
+    openSettings: document.getElementById("open-settings"),
+    settingsOverlay: document.getElementById("settings-overlay"),
+    settingsHost: document.getElementById("settings-host"),
+    settingsPrice: document.getElementById("settings-price"),
+    saveSettings: document.getElementById("save-settings"),
+    cancelSettings: document.getElementById("cancel-settings")
 };
 
 const wifiBars = Array.from(document.querySelectorAll("#wifi-bars .wifi-bar"));
@@ -162,6 +168,74 @@ async function fetchStatus() {
     return response.json();
 }
 
+async function fetchSettings() {
+    const response = await fetch("/api/settings");
+    if (!response.ok) {
+        throw new Error("Failed to fetch settings");
+    }
+    return response.json();
+}
+
+async function saveSettings(payload) {
+    const response = await fetch("/api/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+    });
+
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) {
+        throw new Error(body.error || "Failed to save settings");
+    }
+
+    return body;
+}
+
+function openSettingsOverlay() {
+    if (!els.settingsOverlay) return;
+    els.settingsOverlay.classList.remove("hidden");
+    els.settingsOverlay.setAttribute("aria-hidden", "false");
+}
+
+function closeSettingsOverlay() {
+    if (!els.settingsOverlay) return;
+    els.settingsOverlay.classList.add("hidden");
+    els.settingsOverlay.setAttribute("aria-hidden", "true");
+}
+
+async function showSettings() {
+    try {
+        const settings = await fetchSettings();
+        if (els.settingsHost) {
+            els.settingsHost.value = settings.charger_host ?? "";
+        }
+        if (els.settingsPrice) {
+            els.settingsPrice.value = settings.energy_price_eur_per_kwh ?? "";
+        }
+        openSettingsOverlay();
+    } catch (error) {
+        setControlMessage(error.message, true);
+    }
+}
+
+async function persistSettings() {
+    try {
+        const chargerHost = String(els.settingsHost?.value || "").trim();
+        const energyPrice = Number(els.settingsPrice?.value);
+
+        await saveSettings({
+            charger_host: chargerHost,
+            energy_price_eur_per_kwh: energyPrice
+        });
+
+        closeSettingsOverlay();
+        setControlMessage("");
+        await loadStatus();
+    } catch (error) {
+        setControlMessage(error.message, true);
+    }
+}
+
 function applyStatus(data) {
     setText(els.power, data.power_kw ?? "-");
     setText(els.energy, data.energy_kwh ?? "-");
@@ -249,6 +323,23 @@ async function setCurrent(currentAmp) {
 }
 
 function bindControlEvents() {
+    if (els.openSettings) {
+        els.openSettings.addEventListener("click", showSettings);
+    }
+    if (els.saveSettings) {
+        els.saveSettings.addEventListener("click", persistSettings);
+    }
+    if (els.cancelSettings) {
+        els.cancelSettings.addEventListener("click", closeSettingsOverlay);
+    }
+    if (els.settingsOverlay) {
+        els.settingsOverlay.addEventListener("click", event => {
+            if (event.target === els.settingsOverlay) {
+                closeSettingsOverlay();
+            }
+        });
+    }
+
     chargingButtons.forEach(button => {
         button.addEventListener("click", () => {
             const action = button.dataset.charging;

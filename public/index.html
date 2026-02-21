@@ -130,6 +130,31 @@
         </div>
     </div>
 
+    <div class="app-footer">
+        <button type="button" id="open-settings" class="settings-button">Settings</button>
+    </div>
+
+    <div id="settings-overlay" class="settings-overlay hidden" aria-hidden="true">
+        <div class="settings-modal" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+            <h2 id="settings-title">Settings</h2>
+
+            <label class="settings-field">
+                <span>Charger IP / Host</span>
+                <input id="settings-host" type="text" placeholder="192.168.178.113">
+            </label>
+
+            <label class="settings-field">
+                <span>Energy Price (EUR/kWh)</span>
+                <input id="settings-price" type="number" step="0.01" min="0" placeholder="0.25">
+            </label>
+
+            <div class="settings-actions">
+                <button type="button" id="cancel-settings" class="ghost">Cancel</button>
+                <button type="button" id="save-settings">Save</button>
+            </div>
+        </div>
+    </div>
+
 </div>
 
 <script src="app.js"></script>
