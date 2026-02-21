@@ -17,11 +17,13 @@
     </div>
 
     <div class="section-title">Charging</div>
-    <div class="info-row">
+    <div class="info-row charging-row">
 
         <div class="info-box">
             <div class="label">Status</div>
-            <div id="status" class="badge gray">-</div>
+            <div class="info-value">
+                <span id="status" class="badge gray">-</span>
+            </div>
         </div>
 
         <div class="info-box">
@@ -62,14 +64,14 @@
             </div>
         </div>
 
-        <div class="info-box">
+        <div class="info-box temp-box">
             <div class="label">Type 2 Temp</div>
             <div class="info-value">
                 <span id="temp-type2">-</span> °C
             </div>
         </div>
 
-        <div class="info-box">
+        <div class="info-box temp-box">
             <div class="label">Supply Temp</div>
             <div class="info-value">
                 <span id="temp-supply">-</span> °C
@@ -101,6 +103,7 @@
     </div>
     <div id="control-message" class="control-message hidden"></div>
 
+    <div class="section-title">Live Phases</div>
     <div class="phase-grid">
         <div class="phase" id="phase1">
             <div class="phase-title">L1</div>

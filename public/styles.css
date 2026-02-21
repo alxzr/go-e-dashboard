@@ -30,7 +30,7 @@ body {
     justify-content: center;
     flex-wrap: wrap;
     gap: 10px;
-    margin-bottom: 25px;
+    margin-bottom: 24px;
 }
 
 .section-title {
@@ -39,7 +39,7 @@ body {
     color: #5b6777;
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    margin: 18px 0 10px;
+    margin: 0 0 10px;
 }
 
 .info-box {
@@ -51,11 +51,35 @@ body {
     box-shadow: 0 4px 12px rgba(0,0,0,0.05);
 }
 
+.charging-row .info-box {
+    display: flex;
+    flex-direction: column;
+}
+
+.charging-row .info-value {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.temp-box {
+    display: flex;
+    flex-direction: column;
+}
+
+.temp-box .info-value {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 .control-row {
     display: grid;
     grid-template-columns: repeat(2, minmax(220px, 1fr));
     gap: 12px;
-    margin-bottom: 10px;
+    margin-bottom: 24px;
 }
 
 .control-box {
