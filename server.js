@@ -2,33 +2,11 @@ import express from "express";
 import fetch from "node-fetch";
 import config from "./config.js";
 
-const DEFAULTS = {
-    chargerHost: "192.168.178.113",
-    port: 3000,
-    phaseThreshold: 3,
-    energyPriceEurPerKwh: 0.25,
-    requestTimeoutMs: 4000
-};
-
-function getConfigNumber(value, fallback) {
-    const numeric = Number(value);
-    return Number.isFinite(numeric) ? numeric : fallback;
-}
-
-function getConfigString(value, fallback) {
-    if (typeof value !== "string") return fallback;
-    const normalized = value.trim();
-    return normalized.length > 0 ? normalized : fallback;
-}
-
-const CHARGER_HOST = getConfigString(config.chargerHost, DEFAULTS.chargerHost);
-const PORT = getConfigNumber(config.port, DEFAULTS.port);
-const PHASE_THRESHOLD = getConfigNumber(config.phaseThreshold, DEFAULTS.phaseThreshold);
-const ENERGY_PRICE_EUR_PER_KWH = getConfigNumber(
-    config.energyPriceEurPerKwh,
-    DEFAULTS.energyPriceEurPerKwh
-);
-const REQUEST_TIMEOUT_MS = getConfigNumber(config.requestTimeoutMs, DEFAULTS.requestTimeoutMs);
+const CHARGER_HOST = config.chargerHost;
+const PORT = config.port;
+const PHASE_THRESHOLD = config.phaseThreshold;
+const ENERGY_PRICE_EUR_PER_KWH = config.energyPriceEurPerKwh;
+const REQUEST_TIMEOUT_MS = config.requestTimeoutMs;
 
 const GOE_URL = `http://${CHARGER_HOST}/api/status`;
 const GOE_SET_URL = GOE_URL.replace("/api/status", "/api/set");
