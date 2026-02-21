@@ -309,7 +309,7 @@ function getTemperatures(tmaValues) {
 function buildStatusResponse(data) {
     const status = getStatusPresentation(data.car);
     const voltages = [0, 1, 2].map(index => getArrayNumber(data.nrg, index));
-    const currentsRaw = [3, 4, 5].map(index => getArrayNumber(data.nrg, index));
+    const currentsRaw = [4, 5, 6].map(index => getArrayNumber(data.nrg, index));
     const currents = currentsRaw.map(a => (a > PHASE_THRESHOLD ? a : 0));
     const activePhases = currents.filter(a => a > 0).length;
     const powerW = getArrayNumber(data.nrg, 7);
