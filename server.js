@@ -2,13 +2,36 @@ import express from "express";
 import fetch from "node-fetch";
 import config from "./config.js";
 
-const app = express();
-const PORT = config.port;
+const DEFAULTS = {
+    chargerHost: "192.168.178.113",
+    port: 3000,
+    phaseThreshold: 3,
+    energyPriceEurPerKwh: 0.25,
+    requestTimeoutMs: 4000
+};
 
-const GOE_URL = `http://${config.chargerHost}/api/status`;
+function getConfigNumber(value, fallback) {
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? numeric : fallback;
+}
+
+function getConfigString(value, fallback) {
+    if (typeof value !== "string") return fallback;
+    const normalized = value.trim();
+    return normalized.length > 0 ? normalized : fallback;
+}
+
+const CHARGER_HOST = getConfigString(config.chargerHost, DEFAULTS.chargerHost);
+const PORT = getConfigNumber(config.port, DEFAULTS.port);
+const PHASE_THRESHOLD = getConfigNumber(config.phaseThreshold, DEFAULTS.phaseThreshold);
+const ENERGY_PRICE_EUR_PER_KWH = getConfigNumber(
+    config.energyPriceEurPerKwh,
+    DEFAULTS.energyPriceEurPerKwh
+);
+const REQUEST_TIMEOUT_MS = getConfigNumber(config.requestTimeoutMs, DEFAULTS.requestTimeoutMs);
+
+const GOE_URL = `http://${CHARGER_HOST}/api/status`;
 const GOE_SET_URL = GOE_URL.replace("/api/status", "/api/set");
-const PHASE_THRESHOLD = config.phaseThreshold;
-const ENERGY_PRICE_EUR_PER_KWH = config.energyPriceEurPerKwh;
 const ALLOWED_PHASES = new Set([1, 3]);
 const ALLOWED_CURRENTS = new Set([6, 10, 12, 14, 16]);
 
@@ -21,6 +44,10 @@ const CAR_STATUS_MAP = {
     5: { text: "Error", color: "red" }
 };
 
+const HTTP_NO_COMPATIBLE_KEY_ERROR = "No compatible key accepted by charger";
+
+const app = express();
+app.disable("x-powered-by");
 app.use(express.static("public"));
 app.use(express.json());
 
@@ -75,7 +102,13 @@ function getStatusPresentation(carValue) {
     if (carValue === null) {
         return { text: "Internal error", color: "red" };
     }
-    return CAR_STATUS_MAP[carValue] ?? { text: "Unknown", color: "gray" };
+
+    const normalizedCar = toFiniteNumber(carValue);
+    if (normalizedCar === null) {
+        return { text: "Unknown", color: "gray" };
+    }
+
+    return CAR_STATUS_MAP[normalizedCar] ?? { text: "Unknown", color: "gray" };
 }
 
 function getPhaseSetValues(phases) {
@@ -83,6 +116,18 @@ function getPhaseSetValues(phases) {
         fsp: phases === 1 ? 1 : 0,
         psm: phases === 1 ? 1 : 2
     };
+}
+
+function getSetEndpointError(error, fallbackMessage) {
+    if (error?.name === "AbortError") {
+        return { status: 504, error: "Charger request timed out" };
+    }
+
+    if (error?.message === HTTP_NO_COMPATIBLE_KEY_ERROR) {
+        return { status: 400, error: HTTP_NO_COMPATIBLE_KEY_ERROR };
+    }
+
+    return { status: 500, error: fallbackMessage };
 }
 
 function parseChargingDuration(cdi) {
@@ -129,53 +174,104 @@ function parseChargingDuration(cdi) {
 }
 
 async function fetchChargerStatus() {
-    const response = await fetch(GOE_URL);
-    if (!response.ok) {
-        throw new Error(`Charger status request failed (${response.status})`);
+    try {
+        const response = await fetchWithTimeout(GOE_URL);
+        if (!response.ok) {
+            throw new Error(`Charger status request failed (${response.status})`);
+        }
+        return response.json();
+    } catch (error) {
+        if (error?.name === "AbortError") {
+            throw new Error(`Charger status request timed out (${REQUEST_TIMEOUT_MS}ms)`);
+        }
+        throw error;
     }
-    return response.json();
+}
+
+async function fetchWithTimeout(url, timeoutMs = REQUEST_TIMEOUT_MS) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+        return await fetch(url, { signal: controller.signal });
+    } finally {
+        clearTimeout(timeoutId);
+    }
 }
 
 async function requestSetKey(key, value) {
     const url = `${GOE_SET_URL}?${key}=${encodeURIComponent(value)}`;
-    const response = await fetch(url);
-    if (!response.ok) {
-        return null;
+
+    try {
+        const response = await fetchWithTimeout(url);
+        if (!response.ok) {
+            return { ok: false, reason: "http" };
+        }
+
+        const data = await response.json().catch(() => ({}));
+        return { ok: true, key, data };
+    } catch (error) {
+        return { ok: false, reason: "network", error };
     }
-    const data = await response.json().catch(() => ({}));
-    return { key, data };
 }
 
 async function setFirstWorkingKey(candidates, value) {
+    let networkError = null;
+
     for (const key of candidates) {
         const result = await requestSetKey(key, value);
-        if (result) {
+        if (result.ok) {
             return result;
         }
+
+        if (result.reason === "network") {
+            networkError = result.error;
+        }
     }
-    throw new Error("No compatible key accepted by charger");
+
+    if (networkError) {
+        throw networkError;
+    }
+
+    throw new Error(HTTP_NO_COMPATIBLE_KEY_ERROR);
+}
+
+function getArrayNumber(values, index, fallback = 0) {
+    if (!Array.isArray(values)) return fallback;
+    const numeric = toFiniteNumber(values[index]);
+    return numeric === null ? fallback : numeric;
+}
+
+function getTemperatures(tmaValues) {
+    const values = Array.isArray(tmaValues) ? tmaValues : [];
+    return {
+        type2Temp: toFiniteNumber(values[0]),
+        supplyTemp: toFiniteNumber(values[1])
+    };
 }
 
 function buildStatusResponse(data) {
     const status = getStatusPresentation(data.car);
-    const voltages = data.nrg.slice(0, 3);
-    const currentsRaw = data.nrg.slice(3, 6);
+    const voltages = [0, 1, 2].map(index => getArrayNumber(data.nrg, index));
+    const currentsRaw = [3, 4, 5].map(index => getArrayNumber(data.nrg, index));
     const currents = currentsRaw.map(a => (a > PHASE_THRESHOLD ? a : 0));
     const activePhases = currents.filter(a => a > 0).length;
-    const chargedWh = Number(data.wh);
+    const powerW = getArrayNumber(data.nrg, 7);
+    const chargedWh = toFiniteNumber(data.wh) ?? 0;
     const sessionCostEur = Number.isFinite(chargedWh)
         ? (chargedWh / 1000) * ENERGY_PRICE_EUR_PER_KWH
         : null;
     const chargingDuration = parseChargingDuration(data.cdi);
+    const temperatures = getTemperatures(data.tma);
 
     return {
-        power_kw: (data.nrg[7] / 1000).toFixed(2),
-        energy_kwh: (data.wh / 1000).toFixed(2),
+        power_kw: (powerW / 1000).toFixed(2),
+        energy_kwh: (chargedWh / 1000).toFixed(2),
         session_cost_eur: sessionCostEur,
         session_duration_sec: chargingDuration.seconds,
         session_duration_state: chargingDuration.state,
-        type2_temp: data.tma?.[0] ?? null,
-        supply_temp: data.tma?.[1] ?? null,
+        type2_temp: temperatures.type2Temp,
+        supply_temp: temperatures.supplyTemp,
         wifi_signal_dbm: getWifiSignalDbm(data),
         configured_phases: getConfiguredPhases(data),
         configured_current_amp: getConfiguredCurrentAmp(data),
@@ -218,7 +314,8 @@ app.post("/api/settings/phases", async (req, res) => {
             used_key: result.key
         });
     } catch (error) {
-        return res.status(500).json({ error: "Failed to update configured phases" });
+        const responseError = getSetEndpointError(error, "Failed to update configured phases");
+        return res.status(responseError.status).json({ error: responseError.error });
     }
 });
 
@@ -236,7 +333,8 @@ app.post("/api/settings/current", async (req, res) => {
             used_key: result.key
         });
     } catch (error) {
-        return res.status(500).json({ error: "Failed to update configured current" });
+        const responseError = getSetEndpointError(error, "Failed to update configured current");
+        return res.status(responseError.status).json({ error: responseError.error });
     }
 });
 

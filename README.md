@@ -1,32 +1,48 @@
 # go-e Charger Dashboard
 
-A lightweight Node.js dashboard for monitoring a go-e Charger using its local HTTP API.
-
-This project provides a clean and responsive web interface showing live charging data directly from your charger within your local network.
+A lightweight Node.js dashboard for monitoring and controlling a go-e charger via its local HTTP API.
 
 ## Features
 
-- Live charging power (kW)
-- Charged energy (kWh)
-- Vehicle status indicator
-- Automatic 1/3-phase detection with noise filtering
-- Per-phase voltage and current display
-- Active phase highlighting
-- Type 2 temperature monitoring
-- Internal power supply temperature monitoring
-- Mobile responsive layout
-- No external dependencies beyond Express
+- Live charging power hero card (kW) with status indicator
+- Charging section with:
+  - Status
+  - Charged energy (kWh)
+  - Dynamic cost calculation in EUR
+  - Session time (`cdi` from charger API)
+- System section with:
+  - WiFi signal strength (5 bars + dBm)
+  - Type 2 temperature
+  - Supply temperature
+- Control section:
+  - Phase switching (1 / 3)
+  - Charging current presets (6 / 10 / 12 / 14 / 16 A)
+- Live per-phase voltage/current values with active phase highlighting
+- Responsive UI for desktop and mobile
 
 ## Requirements
 
 - Node.js 18+
-- A go-e Charger accessible in your local network
-- Charger IP address
+- A go-e charger reachable in your local network
 
-## Installation
+## Setup
 
-Clone the repository:
+1. Install dependencies:
 
 ```bash
-git clone https://github.com/yourusername/go-e-dashboard.git
-cd go-e-dashboard
+npm install
+```
+
+2. Configure charger and pricing in `config.js`:
+
+- `chargerHost` - charger IP/host in your LAN
+- `energyPriceEurPerKwh` - electricity price used for cost display
+- `requestTimeoutMs` - API timeout for charger requests
+
+3. Start the dashboard:
+
+```bash
+npm start
+```
+
+4. Open `http://localhost:3000`.
