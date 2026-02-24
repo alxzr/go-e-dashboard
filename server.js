@@ -316,7 +316,9 @@ function buildStatusResponse(data) {
     const currentsRaw = [4, 5, 6].map(index => getArrayNumber(data.nrg, index));
     const currents = currentsRaw.map(a => (a > PHASE_THRESHOLD ? a : 0));
     const activePhases = currents.filter(a => a > 0).length;
-    const powerW = getArrayNumber(data.nrg, 7);
+    const powerW = [7, 8, 9]
+        .map(i => getArrayNumber(data.nrg, i) || 0)
+        .reduce((sum, value) => sum + value, 0);
     const chargedWh = toFiniteNumber(data.wh) ?? 0;
     const sessionCostEur = Number.isFinite(chargedWh)
         ? (chargedWh / 1000) * runtimeSettings.energyPriceEurPerKwh
