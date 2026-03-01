@@ -6,22 +6,22 @@ A lightweight Node.js dashboard for monitoring and controlling a go-e charger vi
 
 - Live charging power hero card (kW) with status indicator
 - Charging section with:
-  - Status
   - Charged energy (kWh)
-  - Dynamic cost calculation in EUR
-  - Session time (`cdi` from charger API)
+  - Current cost (EUR)
+  - Session time
 - System section with:
-  - WiFi signal strength (5 bars + dBm)
+  - WiFi signal strength (5 bars)
   - Type 2 temperature
   - Supply temperature
 - Control section:
   - Charging start/stop
   - Phase switching (1 / 3)
   - Charging current presets (6 / 10 / 12 / 14 / 16 A)
+- Live per-phase voltage/current values with active phase highlighting
+- Firmware version footer
 - In-app `Settings` button (bottom) with overlay for:
   - Charger IP/host
   - Energy price (EUR/kWh)
-- Live per-phase voltage/current values with active phase highlighting
 - Responsive UI for desktop and mobile
 
 ## Requirements
@@ -58,7 +58,18 @@ Use the `Settings` button at the bottom of the dashboard to change:
 - Charger IP/host
 - Energy price (EUR/kWh)
 
-These settings are applied immediately and persisted to `config.js`, so they remain after a restart.
+These settings are saved to `config.js` via `/api/settings`, so they remain after restart.
+
+## HTTP API (internal UI backend)
+
+The frontend uses these endpoints exposed by `server.js`:
+
+- `GET /api/status` - normalized live charger status for UI cards and controls
+- `GET /api/settings` - current runtime settings (`charger_host`, `energy_price_eur_per_kwh`)
+- `POST /api/settings` - persist charger host and energy price to `config.js`
+- `POST /api/settings/charging` - start/stop charging
+- `POST /api/settings/phases` - set configured phases (`1` or `3`)
+- `POST /api/settings/current` - set charging current (`6|10|12|14|16`)
 
 ## Screenshot
 
