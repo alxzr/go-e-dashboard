@@ -11,7 +11,6 @@ const els = {
     tempType2: document.getElementById("temp-type2"),
     tempSupply: document.getElementById("temp-supply"),
     firmwareVersion: document.getElementById("firmware-version"),
-    wifiSignal: document.getElementById("wifi-signal"),
     controlMessage: document.getElementById("control-message"),
     openSettings: document.getElementById("open-settings"),
     settingsOverlay: document.getElementById("settings-overlay"),
@@ -239,7 +238,6 @@ function applyStatus(data) {
     setText(els.firmwareVersion, `Firmware ${data.firmware_version ?? "-"}`);
 
     const wifiDbm = toFiniteNumber(data.wifi_signal_dbm);
-    setText(els.wifiSignal, wifiDbm === null ? "-" : wifiDbm.toFixed(0));
     setWifiBars(wifiDbm);
 
     setPowerMetaStatus(data.status_text);
