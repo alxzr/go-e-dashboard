@@ -149,8 +149,8 @@ body {
 
 .button-group {
     display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
+    flex-wrap: nowrap;
+    gap: 6px;
 }
 
 .button-group button {
@@ -161,6 +161,8 @@ body {
     padding: 8px 10px;
     font-size: 0.9rem;
     cursor: pointer;
+    flex: 1 1 80px;
+    min-width: 0;
 }
 
 .button-group button:hover {
