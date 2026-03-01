@@ -5,7 +5,6 @@ const els = {
     power: document.getElementById("power"),
     liveStatus: document.getElementById("live-status"),
     liveDot: document.querySelector(".live-dot"),
-    status: document.getElementById("status"),
     energy: document.getElementById("energy"),
     sessionCost: document.getElementById("session-cost"),
     sessionTime: document.getElementById("session-time"),
@@ -112,8 +111,8 @@ function formatDuration(seconds) {
 
 function formatCostEur(value) {
     const numeric = toFiniteNumber(value);
-    if (numeric === null) return "( - EUR )";
-    return `(${numeric.toFixed(2).replace(".", ",")} EUR)`;
+    if (numeric === null) return "- EUR";
+    return `${numeric.toFixed(2).replace(".", ",")} EUR`;
 }
 
 function setActiveButton(buttons, dataAttr, selectedValue) {
@@ -243,10 +242,6 @@ function applyStatus(data) {
     setText(els.wifiSignal, wifiDbm === null ? "-" : wifiDbm.toFixed(0));
     setWifiBars(wifiDbm);
 
-    setText(els.status, data.status_text ?? "Unknown");
-    if (els.status) {
-        els.status.className = "badge " + (data.status_color || "gray");
-    }
     setPowerMetaStatus(data.status_text);
 
     const chargingState = data.charging_allowed === true ? "start" :
