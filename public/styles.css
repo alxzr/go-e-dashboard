@@ -167,6 +167,7 @@ body {
 
 .button-group button:hover {
     background: #eef3f9;
+    border-color: #c1cfde;
 }
 
 .button-group button:disabled {
@@ -180,9 +181,19 @@ body {
     color: white;
 }
 
+.button-group button.selected:hover {
+    background: #29b765;
+    border-color: #29b765;
+}
+
 #charging-buttons button[data-charging="stop"].selected {
     background: #e74c3c;
     border-color: #e74c3c;
+}
+
+#charging-buttons button[data-charging="stop"].selected:hover {
+    background: #d64036;
+    border-color: #d64036;
 }
 
 .control-message {
@@ -309,7 +320,8 @@ body {
 .settings-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(16, 24, 39, 0.45);
+    background: rgba(16, 24, 39, 0.32);
+    backdrop-filter: blur(3px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -324,10 +336,11 @@ body {
 .settings-modal {
     width: 100%;
     max-width: 420px;
-    background: white;
+    background: #ffffff;
+    border: 1px solid #e0e6ed;
     border-radius: 14px;
     padding: 18px;
-    box-shadow: 0 16px 42px rgba(0,0,0,0.2);
+    box-shadow: 0 12px 32px rgba(20, 45, 74, 0.18);
 }
 
 .settings-modal h2 {
@@ -360,18 +373,42 @@ body {
 }
 
 .settings-actions button {
-    border: 1px solid #2c3e50;
-    background: #2c3e50;
-    color: white;
+    border: 1px solid #d0d8e2;
+    background: #f8fafc;
+    color: #2c3e50;
     border-radius: 10px;
     padding: 8px 12px;
+    font-size: 0.9rem;
+    font-weight: 600;
     cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.settings-actions button:hover {
+    background: #eef3f9;
+    border-color: #c1cfde;
+}
+
+.settings-actions button:not(.ghost) {
+    background: #2ecc71;
+    border-color: #2ecc71;
+    color: white;
+}
+
+.settings-actions button:not(.ghost):hover {
+    background: #29b765;
+    border-color: #29b765;
 }
 
 .settings-actions button.ghost {
-    background: white;
+    background: #f8fafc;
     color: #2c3e50;
     border-color: #d0d8e2;
+}
+
+.settings-actions button.ghost:hover {
+    background: #eef3f9;
+    border-color: #c1cfde;
 }
 
 .phase-title {
