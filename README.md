@@ -37,7 +37,7 @@ A lightweight Node.js dashboard for monitoring and controlling a go-e charger vi
 npm install
 ```
 
-2. Configure charger and pricing in `config.js`:
+2. Configure charger and pricing in `config.json`:
 
 - `chargerHost` - charger IP/host in your LAN
 - `energyPriceEurPerKwh` - electricity price used for cost display
@@ -58,7 +58,7 @@ Use the `Settings` button at the bottom of the dashboard to change:
 - Charger IP/host
 - Energy price (EUR/kWh)
 
-These settings are saved to `config.js` via `/api/settings`, so they remain after restart.
+These settings are saved to `config.json` via `/api/settings`, so they remain after restart.
 
 ## HTTP API (internal UI backend)
 
@@ -66,7 +66,7 @@ The frontend uses these endpoints exposed by `server.js`:
 
 - `GET /api/status` - normalized live charger status for UI cards and controls
 - `GET /api/settings` - current runtime settings (`charger_host`, `energy_price_eur_per_kwh`)
-- `POST /api/settings` - persist charger host and energy price to `config.js`
+- `POST /api/settings` - persist charger host and energy price to `config.json`
 - `POST /api/settings/charging` - start/stop charging
 - `POST /api/settings/phases` - set configured phases (`1` or `3`)
 - `POST /api/settings/current` - set charging current (`6|10|12|14|16`)
