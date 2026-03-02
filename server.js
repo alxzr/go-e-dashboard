@@ -1,8 +1,6 @@
 import express from "express";
+import { readFileSync } from "node:fs";
 import { writeFile } from "node:fs/promises";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-import config from "./config.js";
 
 const PORT = config.port;
 const PHASE_THRESHOLD = config.phaseThreshold;
@@ -20,8 +18,10 @@ const CAR_STATUS_MAP = {
     5: { text: "Error", color: "red" }
 };
 
+const CONFIG_FILE_PATH = new URL("./config.json", import.meta.url);
+const config = JSON.parse(readFileSync(CONFIG_FILE_PATH, "utf8"));
+
 const HTTP_NO_COMPATIBLE_KEY_ERROR = "No compatible key accepted by charger";
-const CONFIG_FILE_PATH = path.join(path.dirname(fileURLToPath(import.meta.url)), "config.js");
 
 const app = express();
 app.disable("x-powered-by");
@@ -127,6 +127,8 @@ function getSetEndpointError(error, fallbackMessage) {
     return { status: 500, error: fallbackMessage };
 }
 
+const DURATION_STATE_BY_TYPE = { 1: "duration_ms" };
+
 function parseChargingDuration(cdi, rebootTimerMs) {
     const toSeconds = (rawValue, isMilliseconds = false) => {
         const numeric = toFiniteNumber(rawValue);
@@ -181,13 +183,9 @@ function parseChargingDuration(cdi, rebootTimerMs) {
         return { seconds: null, state: "invalid" };
     }
 
-    const stateByType = {
-        1: "duration_ms"
-    };
-
     return {
         seconds: valueSeconds,
-        state: stateByType[type] ?? "unknown_type"
+        state: DURATION_STATE_BY_TYPE[type] ?? "unknown_type"
     };
 }
 
@@ -267,32 +265,8 @@ async function setFirstWorkingSetting(settings) {
 }
 
 async function persistSettingsToConfigFile(overrides) {
-    const nextConfig = {
-        ...config,
-        ...overrides
-    };
-
-    const orderedKeys = [
-        "chargerHost",
-        "port",
-        "phaseThreshold",
-        "energyPriceEurPerKwh",
-        "requestTimeoutMs"
-    ];
-
-    const formatValue = value => {
-        if (typeof value === "string") {
-            return JSON.stringify(value);
-        }
-        return String(value);
-    };
-
-    const lines = orderedKeys
-        .filter(key => Object.prototype.hasOwnProperty.call(nextConfig, key))
-        .map(key => `    ${key}: ${formatValue(nextConfig[key])},`);
-
-    const content = `const config = {\n${lines.join("\n")}\n};\n\nexport default config;\n`;
-    await writeFile(CONFIG_FILE_PATH, content, "utf8");
+    const nextConfig = { ...config, ...overrides };
+    await writeFile(CONFIG_FILE_PATH, JSON.stringify(nextConfig, null, 4) + "\n", "utf8");
 }
 
 function getArrayNumber(values, index, fallback = 0) {
@@ -316,7 +290,7 @@ function buildStatusResponse(data) {
     const currents = currentsRaw.map(a => (a > PHASE_THRESHOLD ? a : 0));
     const activePhases = currents.filter(a => a > 0).length;
     const powerW = [7, 8, 9]
-        .map(i => getArrayNumber(data.nrg, i) || 0)
+        .map(i => getArrayNumber(data.nrg, i))
         .reduce((sum, value) => sum + value, 0);
     const chargedWh = toFiniteNumber(data.wh) ?? 0;
     const sessionCostEur = Number.isFinite(chargedWh)
