@@ -1,5 +1,4 @@
 import express from "express";
-import fetch from "node-fetch";
 import { writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -353,6 +352,7 @@ app.get("/api/status", async (req, res) => {
         const data = await fetchChargerStatus();
         res.json(buildStatusResponse(data));
     } catch (error) {
+        console.error("Failed to fetch charger status:", error);
         res.status(500).json({ error: "Failed to fetch go-e data" });
     }
 });
@@ -399,12 +399,10 @@ app.post("/api/settings/phases", async (req, res) => {
 
         const setValues = getPhaseSetValues(phases);
 
-        let result;
-        try {
-            result = await setFirstWorkingSetting([{ key: "fsp", value: setValues.fsp }]);
-        } catch {
-            result = await setFirstWorkingSetting([{ key: "psm", value: setValues.psm }]);
-        }
+        const result = await setFirstWorkingSetting([
+            { key: "fsp", value: setValues.fsp },
+            { key: "psm", value: setValues.psm }
+        ]);
 
         return res.json({
             success: true,
